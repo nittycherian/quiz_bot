@@ -32,6 +32,9 @@ def record_current_answer(answer, current_question_id, session):
     '''
     Validates and stores the answer for the current question to django session.
     '''
+    session["answers"] = session.get("answers", {})
+    session["answers"][current_question_id] = answer
+    session.modified = True
     return True, ""
 
 
@@ -39,8 +42,17 @@ def get_next_question(current_question_id):
     '''
     Fetches the next question from the PYTHON_QUESTION_LIST based on the current_question_id.
     '''
+    try:
+        current_index = PYTHON_QUESTION_LIST.index(current_question_id)
+        if current_index + 1 < len(PYTHON_QUESTION_LIST):
+            next_question_id = PYTHON_QUESTION_LIST[current_index + 1]
+            next_question = PYTHON_QUESTION_LIST[next_question_id]
+            return next_question, next_question_id
+    except ValueError:
+        pass  
+    return None, None
 
-    return "dummy question", -1
+   
 
 
 def generate_final_response(session):
@@ -48,5 +60,18 @@ def generate_final_response(session):
     Creates a final result message including a score based on the answers
     by the user for questions in the PYTHON_QUESTION_LIST.
     '''
+    answers = session.get("answers", {})
+    total_questions = len(PYTHON_QUESTION_LIST)
+    total_correct = 0
 
-    return "dummy result"
+    for question_id, user_answer in answers.items():
+        correct_answer = PYTHON_QUESTION_LIST[question_id].correct_answer
+        if user_answer == correct_answer:
+            total_correct += 1
+
+    score = (total_correct / total_questions) * 100
+
+    final_response = f"Your score is: {score:.2f}%"
+    return final_response
+
+    
